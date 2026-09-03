@@ -67,15 +67,26 @@ def utc_now() -> str:
 def _connect(db_path: str = DEFAULT_DB) -> Iterable[sqlite3.Connection]:
     path = Path(db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path, timeout=30.0)
+    conn = sqlite3.connect(path, timeout=60.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    conn.execute("PRAGMA busy_timeout = 30000")
+    conn.execute("PRAGMA busy_timeout = 60000")
     try:
         yield conn
-        conn.commit()
+        for attempt in range(5):
+            try:
+                conn.commit()
+                break
+            except sqlite3.OperationalError:
+                if attempt == 4:
+                    raise
+                import time
+                time.sleep(0.08 * (attempt + 1))
     except Exception:
-        conn.rollback()
+        try:
+            conn.rollback()
+        except Exception:
+            pass
         raise
     finally:
         conn.close()

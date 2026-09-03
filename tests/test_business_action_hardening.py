@@ -1,6 +1,7 @@
 import os
 import sys
 import unittest
+import uuid
 
 sys.path.extend([
     os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "lib")),
@@ -34,7 +35,7 @@ class TestBusinessActionHardening(unittest.TestCase):
     def test_01_no_premature_insert_and_combined_parsing(self):
         """P0 Bug 4: No premature DB insert until all 5 fields are complete.
         Extracts combined input: 'أحمد محمد01123456789الاتنن 2الظهر'."""
-        session_id = "test-action-hardening-01"
+        session_id = f"test-action-hardening-{uuid.uuid4().hex[:8]}"
         action = self.mm.create_pending_action(session_id, "test_drive", entity_id=9067)
         payload = action["payload"]
 
@@ -70,7 +71,7 @@ class TestBusinessActionHardening(unittest.TestCase):
 
     def test_02_reschedule_clears_date_time_without_insert(self):
         """Customer says: 'عايز احجز العربيه دي بمواعيد تانيه' -> Clears schedule, asks missing, does NOT insert."""
-        session_id = "test-action-reschedule-01"
+        session_id = f"test-action-reschedule-{uuid.uuid4().hex[:8]}"
         # Simulate previously filled booking
         self.mm.create_pending_action(
             session_id,
@@ -100,7 +101,7 @@ class TestBusinessActionHardening(unittest.TestCase):
 
     def test_03_new_details_clears_customer_info(self):
         """Customer says: 'وببيانات جديدة كلية' -> Clears name, phone, date, time while keeping target car."""
-        session_id = "test-action-new-details-01"
+        session_id = f"test-action-new-details-{uuid.uuid4().hex[:8]}"
         self.mm.create_pending_action(
             session_id,
             "test_drive",

@@ -275,7 +275,7 @@ def _normalize_research_payload(
             result["variant_match"] = "partial"
             result["answer_note"] = (
                 f"المصدر المتاح يخص محرك {source_cc_int}cc بينما السيارة المحددة في الداتا {target_cc}cc، "
-                "لذلك لم أعتبر القيمة مطابقة للفئة الحالية."
+                "ولن أخلط مواصفات فئة بمواصفات فئة أخرى، لذلك لم أعتبر القيمة مطابقة للفئة الحالية."
             )
 
     note, injected = sanitize_and_check_injection(str(result.get("answer_note") or ""))
@@ -500,7 +500,7 @@ class VehicleResearchAgent(Component):
             result = _normalize_research_payload(
                 {
                     "status": "not_found",
-                    "answer_note": "لم أتمكن من تشغيل أدوات البحث الخارجي للتحقق من القيمة الدقيقة.",
+                    "answer_note": "حسب البيانات المتاحة عندي، لم أتمكن من تشغيل أدوات البحث الخارجي للتحقق من القيمة الدقيقة.",
                     "sources": [],
                 },
                 attribute=attribute,

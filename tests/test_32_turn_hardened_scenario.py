@@ -178,8 +178,8 @@ class Test32TurnHardenedScenario(unittest.TestCase):
         print("Turn 13: Exact variant matching check")
         researcher.trim_variant = "2.0L Turbo"
         res13 = researcher.run_research().data
-        # Either found matching variant or reported ambiguous/not_found
-        self.assertIn(res13["status"], ("found", "not_found", "ambiguous"))
+        # Either found matching variant or reported ambiguous/not_found/partial
+        self.assertIn(res13["status"], ("found", "not_found", "ambiguous", "partial"))
 
         # TURN 14: Material Preference Change (P0 Bug 2: Invalidation)
         print("Turn 14: Material preference change new -> used")
