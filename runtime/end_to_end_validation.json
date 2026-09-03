@@ -1,0 +1,427 @@
+{
+  "status": "FAIL",
+  "generated_at": "2026-09-02T21:33:45.728300+00:00",
+  "live_database": "/data/car_dealership.db",
+  "validation_database": "/data/e2e_validation.db",
+  "checks": [
+    {
+      "name": "balanced_dataset_target",
+      "status": "FAIL",
+      "evidence": {
+        "status": "insufficient_new_rows",
+        "used": 8374,
+        "new": 1930,
+        "total": 10304,
+        "new_shortfall": 6444
+      }
+    },
+    {
+      "name": "live_database_integrity",
+      "status": "PASS",
+      "evidence": {
+        "active_total": 10304,
+        "used": 8374,
+        "new": 1930,
+        "inactive_history": 2,
+        "test_drives": 1,
+        "sales_leads": 1,
+        "messages": 42
+      }
+    },
+    {
+      "name": "structured_search_new_suv_automatic_budget",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": 9067,
+          "brand": "ساوايست",
+          "model": "S 09",
+          "price": 1500000.0,
+          "city": null,
+          "fuel": null,
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 0.0,
+          "origin": null,
+          "engine_capacity": 1600.0,
+          "engine_power": null,
+          "age": 0.0,
+          "year": 2026,
+          "condition": "new",
+          "body_type": "SUV",
+          "trim": null,
+          "color": "Silver",
+          "source": "Kaggle - Egyptian Car Market Dataset (MIT)",
+          "source_url": "https://www.kaggle.com/datasets/noortariq20/egyptian-car-market-dataset/data",
+          "source_id": "noortariq20-egypt-market:78fe2f7bae116d474a90c739",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        },
+        {
+          "id": 9069,
+          "brand": "ساوايست",
+          "model": "S 09",
+          "price": 1500000.0,
+          "city": null,
+          "fuel": null,
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 0.0,
+          "origin": null,
+          "engine_capacity": 1600.0,
+          "engine_power": null,
+          "age": 0.0,
+          "year": 2026,
+          "condition": "new",
+          "body_type": "SUV",
+          "trim": null,
+          "color": "Gray",
+          "source": "Kaggle - Egyptian Car Market Dataset (MIT)",
+          "source_url": "https://www.kaggle.com/datasets/noortariq20/egyptian-car-market-dataset/data",
+          "source_id": "noortariq20-egypt-market:269e3235f4a31675f4caf488",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        },
+        {
+          "id": 9638,
+          "brand": "Mitsubishi",
+          "model": "Eclipse Cross",
+          "price": 1500000.0,
+          "city": null,
+          "fuel": "Gasoline",
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 0.0,
+          "origin": null,
+          "engine_capacity": 1500.0,
+          "engine_power": 150.0,
+          "age": 1.0,
+          "year": 2025,
+          "condition": "new",
+          "body_type": "SUV",
+          "trim": "Inspire Hl",
+          "color": null,
+          "source": "Kaggle - Egyptian Automotive Market: New & Used Cars (CC BY-NC 4.0)",
+          "source_url": "https://www.kaggle.com/datasets/shamsfathalla/egyptian-automotive-market-new-and-used-cars/data",
+          "source_id": "shamsfathalla-egypt-automotive:917d320e4a1c9f03de1a2a29",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        },
+        {
+          "id": 10053,
+          "brand": "ميتسوبيشي",
+          "model": "اكليبس كروس",
+          "price": 1500000.0,
+          "city": null,
+          "fuel": null,
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 0.0,
+          "origin": null,
+          "engine_capacity": 1600.0,
+          "engine_power": null,
+          "age": 1.0,
+          "year": 2025,
+          "condition": "new",
+          "body_type": "SUV",
+          "trim": null,
+          "color": "Red",
+          "source": "Kaggle - Egyptian Car Market Dataset (MIT)",
+          "source_url": "https://www.kaggle.com/datasets/noortariq20/egyptian-car-market-dataset/data",
+          "source_id": "noortariq20-egypt-market:55c3eb11100a4ce4556d7678",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        },
+        {
+          "id": 10157,
+          "brand": "Suzuki",
+          "model": "Fronx",
+          "price": 1500000.0,
+          "city": null,
+          "fuel": "Gasoline",
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 0.0,
+          "origin": null,
+          "engine_capacity": 1500.0,
+          "engine_power": 103.0,
+          "age": 2.0,
+          "year": 2024,
+          "condition": "new",
+          "body_type": "SUV",
+          "trim": "Glx 2 Tone",
+          "color": null,
+          "source": "Kaggle - Egyptian Automotive Market: New & Used Cars (CC BY-NC 4.0)",
+          "source_url": "https://www.kaggle.com/datasets/shamsfathalla/egyptian-automotive-market-new-and-used-cars/data",
+          "source_id": "shamsfathalla-egypt-automotive:33d974b2c4b4da21f8607708",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        }
+      ]
+    },
+    {
+      "name": "structured_search_used_gasoline_year_budget",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": 7725,
+          "brand": "MG",
+          "model": "MG 5",
+          "price": 900000.0,
+          "city": null,
+          "fuel": "Gasoline",
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 4000.0,
+          "origin": null,
+          "engine_capacity": 1500.0,
+          "engine_power": null,
+          "age": 0.0,
+          "year": 2026,
+          "condition": "used",
+          "body_type": "Sedan",
+          "trim": null,
+          "color": null,
+          "source": "Kaggle - Egyptian Used Car Price Dataset (Apache 2.0)",
+          "source_url": "https://www.kaggle.com/datasets/alyahmedts13/egyptian-used-car-price-dataset/data",
+          "source_id": "alyahmedts13-egyptian-used:1cc1ff92ee4f68420e9a1941",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        },
+        {
+          "id": 2978,
+          "brand": "Renault",
+          "model": "Kardian",
+          "price": 900000.0,
+          "city": null,
+          "fuel": "Gasoline",
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 10000.0,
+          "origin": null,
+          "engine_capacity": 1000.0,
+          "engine_power": null,
+          "age": 1.0,
+          "year": 2025,
+          "condition": "used",
+          "body_type": "Hatchback",
+          "trim": null,
+          "color": null,
+          "source": "Kaggle - Egyptian Used Car Price Dataset (Apache 2.0)",
+          "source_url": "https://www.kaggle.com/datasets/alyahmedts13/egyptian-used-car-price-dataset/data",
+          "source_id": "alyahmedts13-egyptian-used:ad4f0e93741d47bf784755d0",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        },
+        {
+          "id": 467,
+          "brand": "Chery",
+          "model": "Tiggo 7",
+          "price": 900000.0,
+          "city": null,
+          "fuel": "Gasoline",
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 13000.0,
+          "origin": null,
+          "engine_capacity": 1600.0,
+          "engine_power": null,
+          "age": 3.0,
+          "year": 2023,
+          "condition": "used",
+          "body_type": "SUV",
+          "trim": null,
+          "color": null,
+          "source": "Kaggle - Egyptian Used Car Price Dataset (Apache 2.0)",
+          "source_url": "https://www.kaggle.com/datasets/alyahmedts13/egyptian-used-car-price-dataset/data",
+          "source_id": "alyahmedts13-egyptian-used:15b2cb2130db3e47a25593f4",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        },
+        {
+          "id": 8218,
+          "brand": "Hyundai",
+          "model": "Accent",
+          "price": 900000.0,
+          "city": null,
+          "fuel": "Gasoline",
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 30000.0,
+          "origin": null,
+          "engine_capacity": 1400.0,
+          "engine_power": null,
+          "age": 4.0,
+          "year": 2022,
+          "condition": "used",
+          "body_type": "Sedan",
+          "trim": null,
+          "color": null,
+          "source": "Kaggle - Egyptian Used Car Price Dataset (Apache 2.0)",
+          "source_url": "https://www.kaggle.com/datasets/alyahmedts13/egyptian-used-car-price-dataset/data",
+          "source_id": "alyahmedts13-egyptian-used:b06b12fde2975158645af5e8",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        },
+        {
+          "id": 8346,
+          "brand": "Renault",
+          "model": "Duster",
+          "price": 900000.0,
+          "city": null,
+          "fuel": "Gasoline",
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 37000.0,
+          "origin": null,
+          "engine_capacity": 1600.0,
+          "engine_power": null,
+          "age": 4.0,
+          "year": 2022,
+          "condition": "used",
+          "body_type": "Hatchback",
+          "trim": null,
+          "color": null,
+          "source": "Kaggle - Egyptian Used Car Price Dataset (Apache 2.0)",
+          "source_url": "https://www.kaggle.com/datasets/alyahmedts13/egyptian-used-car-price-dataset/data",
+          "source_id": "alyahmedts13-egyptian-used:b4a25fe07b068be4bf7b456a",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        }
+      ]
+    },
+    {
+      "name": "comparison_by_prior_ids",
+      "status": "PASS",
+      "evidence": [
+        {
+          "id": 9067,
+          "brand": "ساوايست",
+          "model": "S 09",
+          "price": 1500000.0,
+          "city": null,
+          "fuel": null,
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 0.0,
+          "origin": null,
+          "engine_capacity": 1600.0,
+          "engine_power": null,
+          "age": 0.0,
+          "year": 2026,
+          "condition": "new",
+          "body_type": "SUV",
+          "trim": null,
+          "color": "Silver",
+          "source": "Kaggle - Egyptian Car Market Dataset (MIT)",
+          "source_url": "https://www.kaggle.com/datasets/noortariq20/egyptian-car-market-dataset/data",
+          "source_id": "noortariq20-egypt-market:78fe2f7bae116d474a90c739",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        },
+        {
+          "id": 9069,
+          "brand": "ساوايست",
+          "model": "S 09",
+          "price": 1500000.0,
+          "city": null,
+          "fuel": null,
+          "transmission": "Automatic",
+          "drive": null,
+          "mileage": 0.0,
+          "origin": null,
+          "engine_capacity": 1600.0,
+          "engine_power": null,
+          "age": 0.0,
+          "year": 2026,
+          "condition": "new",
+          "body_type": "SUV",
+          "trim": null,
+          "color": "Gray",
+          "source": "Kaggle - Egyptian Car Market Dataset (MIT)",
+          "source_url": "https://www.kaggle.com/datasets/noortariq20/egyptian-car-market-dataset/data",
+          "source_id": "noortariq20-egypt-market:269e3235f4a31675f4caf488",
+          "collected_at": "2026-09-02T21:13:08.619682+00:00",
+          "catalog_active": 1
+        }
+      ]
+    },
+    {
+      "name": "persistent_conversation_memory",
+      "status": "PASS",
+      "evidence": {
+        "session_id": "e2e-validation-session",
+        "history": [
+          {
+            "role": "user",
+            "content": "عايز عربية زيرو SUV أوتوماتيك"
+          },
+          {
+            "role": "assistant",
+            "content": "الاختيار الأول رقم 9067"
+          }
+        ]
+      }
+    },
+    {
+      "name": "real_business_action_inserts",
+      "status": "PASS",
+      "evidence": {
+        "request_id": 2,
+        "lead_id": 2,
+        "db": "/data/e2e_validation.db"
+      }
+    },
+    {
+      "name": "rag_policy_retrieval_fallback",
+      "status": "PASS",
+      "evidence": {
+        "documents_synced": 4,
+        "sources": [
+          "Test Drive Policy — Demo Data",
+          "Dealership FAQ — Demo Data"
+        ]
+      }
+    },
+    {
+      "name": "input_output_guardrails",
+      "status": "PASS",
+      "evidence": {
+        "normal_input": "allowed",
+        "prompt_injection": "blocked",
+        "secret_output": "redacted"
+      }
+    },
+    {
+      "name": "langflow_health",
+      "status": "PASS",
+      "evidence": {
+        "http_status": 200,
+        "body": "{\"status\":\"ok\"}"
+      }
+    },
+    {
+      "name": "deployed_flow_graph",
+      "status": "PASS",
+      "evidence": {
+        "id": "d04cf798-20a9-432d-bb02-24ae1e2612c5",
+        "name": "Car Dealership AI Agent — Gemini 3.5 Flash-Lite",
+        "nodes": 13,
+        "edges": 12
+      }
+    },
+    {
+      "name": "web_fallback_wiring",
+      "status": "PASS",
+      "evidence": {
+        "UnifiedWebSearch": true,
+        "URLComponent": true
+      }
+    },
+    {
+      "name": "live_llm_conversation_scenarios",
+      "status": "NOT TESTED",
+      "evidence": "Run through the Langflow /run endpoint separately; requires live Gemini API response."
+    }
+  ]
+}

@@ -1,0 +1,128 @@
+{
+  "status": "PASS",
+  "db": "/data/smoke_test.db",
+  "steps": [
+    {
+      "import": 10
+    },
+    {
+      "search_ids": [
+        2,
+        6,
+        4,
+        9,
+        1
+      ],
+      "first": {
+        "id": 2,
+        "brand": "Hyundai",
+        "model": "Tucson",
+        "price": 19800.0,
+        "city": "Cairo",
+        "fuel": "Gasoline",
+        "transmission": "Automatic",
+        "drive": "FWD",
+        "mileage": 41000.0,
+        "origin": "South Korea",
+        "engine_capacity": 2.0,
+        "engine_power": 155.0,
+        "age": 3.0,
+        "year": 2023,
+        "condition": null,
+        "body_type": null,
+        "trim": null,
+        "color": null,
+        "source": null,
+        "source_url": null,
+        "source_id": "csv:9af3ca440a05a3601ddc128d",
+        "collected_at": null,
+        "catalog_active": 1
+      }
+    },
+    {
+      "comparison_ids": [
+        2,
+        6
+      ]
+    },
+    {
+      "test_drive": 1
+    },
+    {
+      "sales_lead": 1
+    },
+    {
+      "memory": [
+        {
+          "role": "user",
+          "content": "I want an automatic car under 20000"
+        },
+        {
+          "role": "assistant",
+          "content": "I found car id 2"
+        }
+      ]
+    },
+    {
+      "safe_catalog_refresh": {
+        "rows_imported": 10,
+        "active_catalog_rows": 10,
+        "retained_referenced_cars": 1,
+        "columns": [
+          "brand",
+          "model",
+          "price",
+          "city",
+          "fuel",
+          "transmission",
+          "drive",
+          "mileage",
+          "origin",
+          "engine_capacity",
+          "engine_power",
+          "age",
+          "year"
+        ],
+        "mapping": {
+          "brand": "brand",
+          "model": "model",
+          "price": "price",
+          "city": "city",
+          "fuel": "fuel",
+          "transmission": "transmission",
+          "drive": "drive",
+          "mileage": "mileage",
+          "origin": "origin",
+          "engine_capacity": "engine_capacity",
+          "engine_power": "engine_power",
+          "age": "age",
+          "year": "year",
+          "condition": null,
+          "body_type": null,
+          "trim": null,
+          "color": null,
+          "source": null,
+          "source_url": null,
+          "source_id": null,
+          "collected_at": null
+        },
+        "db_path": "/data/smoke_test.db"
+      }
+    },
+    {
+      "rag_fallback_sources": [
+        "Test Drive Policy — Demo Data",
+        "Dealership FAQ — Demo Data"
+      ]
+    },
+    {
+      "guardrails": "PASS"
+    },
+    {
+      "db_actions": {
+        "test_drives": 1,
+        "sales_leads": 1
+      }
+    }
+  ]
+}

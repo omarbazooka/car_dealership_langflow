@@ -1,0 +1,11 @@
+brand,model,price,city,fuel,transmission,drive,mileage,origin,engine_capacity,engine_power,age,year
+Toyota,Corolla,14500,Cairo,Gasoline,Automatic,FWD,58000,Japan,1.6,121,4,2022
+Hyundai,Tucson,19800,Cairo,Gasoline,Automatic,FWD,41000,South Korea,2.0,155,3,2023
+Kia,Sportage,20500,Giza,Gasoline,Automatic,FWD,37000,South Korea,2.0,157,3,2023
+Volkswagen,Golf,18750,Alexandria,Gasoline,Automatic,FWD,49000,Germany,1.4,150,4,2022
+Ford,Focus,13200,Cairo,Gasoline,Automatic,FWD,72000,USA,1.5,150,5,2021
+Nissan,Qashqai,19400,Mansoura,Gasoline,Automatic,FWD,43000,Japan,1.3,158,3,2023
+BMW,X1,27900,Cairo,Gasoline,Automatic,AWD,51000,Germany,2.0,192,5,2021
+Renault,Duster,12800,Giza,Gasoline,Automatic,FWD,65000,France,1.6,115,4,2022
+Skoda,Octavia,17200,Cairo,Gasoline,Automatic,FWD,53000,Czech Republic,1.4,150,4,2022
+Peugeot,3008,21600,Alexandria,Gasoline,Automatic,FWD,38000,France,1.6,165,3,2023

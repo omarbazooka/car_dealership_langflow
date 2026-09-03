@@ -1,0 +1,8 @@
+Run:
+  docker compose exec langflow /app/.venv/bin/python /app/scripts/build_and_install_flow.py
+
+The exact Langflow 1.12.x export will be generated here as:
+  Car_Dealership_Agent.flow.json
+
+The same command also installs the flow directly into the running local Langflow instance.
+Use --no-install if you only want the JSON export.

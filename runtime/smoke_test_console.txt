@@ -1,0 +1,67 @@
+{
+  "status": "PASS",
+  "db": "/mnt/data/car_dealership_langflow/runtime/smoke_test.db",
+  "steps": [
+    {
+      "import": 10
+    },
+    {
+      "search_ids": [
+        8,
+        5,
+        1,
+        9,
+        4
+      ],
+      "first": {
+        "id": 8,
+        "brand": "Renault",
+        "model": "Duster",
+        "price": 12800.0,
+        "city": "Giza",
+        "fuel": "Gasoline",
+        "transmission": "Automatic",
+        "drive": "FWD",
+        "mileage": 65000.0,
+        "origin": "France",
+        "engine_capacity": 1.6,
+        "engine_power": 115.0,
+        "age": 4.0,
+        "year": 2022
+      }
+    },
+    {
+      "test_drive": 1
+    },
+    {
+      "sales_lead": 1
+    },
+    {
+      "memory": [
+        {
+          "role": "user",
+          "content": "I want an automatic car under 20000"
+        },
+        {
+          "role": "assistant",
+          "content": "I found car id 8"
+        }
+      ]
+    },
+    {
+      "rag_fallback_sources": [
+        "Test Drive Policy — Demo Data",
+        "Dealership FAQ — Demo Data"
+      ]
+    },
+    {
+      "guardrails": "PASS"
+    },
+    {
+      "db_actions": {
+        "test_drives": 1,
+        "sales_leads": 1
+      }
+    }
+  ]
+}

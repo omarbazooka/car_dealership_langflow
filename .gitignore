@@ -1,0 +1,34 @@
+# Environment variables and API keys
+.env
+.env.local
+
+# Python / Virtual Environment
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+ENV/
+
+# Databases, vector stores & runtime data
+*.db
+*.sqlite
+*.sqlite3
+data/*.db
+data/chroma_langflow/
+chroma_langflow/
+data/.cache/
+data/.composio/
+data/.gunicorn/
+
+# Logs and temporary files
+*.log
+scratch/
+.system_generated/
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

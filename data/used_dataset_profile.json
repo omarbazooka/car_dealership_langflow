@@ -1,0 +1,201 @@
+{
+  "rows": 8374,
+  "columns": [
+    "Brand",
+    "Model",
+    "Kilometers",
+    "Year",
+    "Fuel Type",
+    "Transmission Type",
+    "Engine Capacity (CC)",
+    "Body Type",
+    "Price_EGP"
+  ],
+  "column_count": 9,
+  "missing": {
+    "Brand": 2,
+    "Model": 58,
+    "Kilometers": 1,
+    "Year": 0,
+    "Fuel Type": 0,
+    "Transmission Type": 0,
+    "Engine Capacity (CC)": 1975,
+    "Body Type": 555,
+    "Price_EGP": 0
+  },
+  "year_min": 1900,
+  "year_max": 2026,
+  "price_egp_min": 1100.0,
+  "price_egp_max": 25000000.0,
+  "fuel_counts": [
+    [
+      "Benzine",
+      7959
+    ],
+    [
+      "Natural Gas",
+      129
+    ],
+    [
+      "Diesel",
+      117
+    ],
+    [
+      "Electric",
+      87
+    ],
+    [
+      "Hybrid",
+      82
+    ]
+  ],
+  "transmission_counts": [
+    [
+      "Automatic",
+      5631
+    ],
+    [
+      "Manual",
+      2743
+    ]
+  ],
+  "body_type_counts": [
+    [
+      "Sedan",
+      4447
+    ],
+    [
+      "Hatchback",
+      1249
+    ],
+    [
+      "SUV",
+      1227
+    ],
+    [
+      "",
+      555
+    ],
+    [
+      "4X4",
+      365
+    ],
+    [
+      "Sports / Coupe",
+      134
+    ],
+    [
+      "Estate",
+      124
+    ],
+    [
+      "Van / Bus",
+      70
+    ],
+    [
+      "Pickup",
+      62
+    ],
+    [
+      "Convertible",
+      57
+    ],
+    [
+      "Other",
+      34
+    ],
+    [
+      "Small city car",
+      28
+    ],
+    [
+      "MPV",
+      22
+    ]
+  ],
+  "top_20_brands": [
+    [
+      "Mercedes-Benz",
+      929
+    ],
+    [
+      "Hyundai",
+      602
+    ],
+    [
+      "BMW",
+      543
+    ],
+    [
+      "Fiat",
+      511
+    ],
+    [
+      "Chevrolet",
+      477
+    ],
+    [
+      "Renault",
+      476
+    ],
+    [
+      "Kia",
+      445
+    ],
+    [
+      "Daewoo",
+      336
+    ],
+    [
+      "Peugeot",
+      307
+    ],
+    [
+      "Opel",
+      306
+    ],
+    [
+      "Nissan",
+      279
+    ],
+    [
+      "Skoda",
+      267
+    ],
+    [
+      "Volkswagen",
+      251
+    ],
+    [
+      "Toyota",
+      228
+    ],
+    [
+      "Suzuki",
+      185
+    ],
+    [
+      "Jeep",
+      167
+    ],
+    [
+      "Mitsubishi",
+      162
+    ],
+    [
+      "Speranza",
+      154
+    ],
+    [
+      "Seat",
+      130
+    ],
+    [
+      "MG",
+      118
+    ]
+  ],
+  "rows_missing_brand_or_model": 58,
+  "target_new_rows": 8374,
+  "target_combined_rows": 16748
+}

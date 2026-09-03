@@ -1,0 +1,24 @@
+Egypt Cars NEW+USED Patch
+=========================
+
+OVERWRITE in existing project:
+- lib/car_dealership_core.py
+- components/car_dealership/gemini_sales_agent.py
+- components/car_dealership/search_used_cars.py
+- scripts/build_and_install_flow.py
+- scripts/prepare_db.py
+
+ADD:
+- scripts/build_egypt_car_dataset.py
+- data/car_ads_details_kaggle.csv            (user-supplied 8,374-row source)
+- data/egypt_used_8374_normalized.csv        (8,374 used rows + Condition/provenance)
+- data/used_dataset_profile.json
+- apply_new_used_dataset.ps1
+- README_PATCH.md
+
+GENERATED ON USER MACHINE:
+- data/contactcars_new_checkpoint.jsonl
+- data/egypt_cars_combined.csv                (target 16,748 rows)
+- data/egypt_cars_combined.report.json
+
+No Docker image rebuild is required for this patch.

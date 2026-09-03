@@ -1,0 +1,24 @@
+flowchart TD
+    U[Customer Message] --> CI[Chat Input]
+    CI --> IG[Input Guardrails]
+    IG --> A[Gemini 3.5 Flash-Lite Sales Agent + Memory]
+
+    S[Search Used Cars Tool] -. Tool .-> A
+    D[Get Car Details Tool] -. Tool .-> A
+    C[Compare Cars Tool] -. Tool .-> A
+    R[Dealership Knowledge RAG] -. Tool .-> A
+    T[Create Test Drive Tool] -. Tooششl .-> A
+    L[Create Sales Lead Tool] -. Tool .-> A
+
+    S --> SQL[(SQLite Cars Inventory)]
+    D --> SQL
+    C --> SQL
+    T --> BDB[(Business DB)]
+    L --> BDB
+    R --> V[(Chroma + Gemini Embeddings)]
+
+    A --> OG[Output Guardrails]
+    OG --> CO[Chat Output]
+    CO --> U
+
+    M[(Conversation Memory by session_id)] <--> A

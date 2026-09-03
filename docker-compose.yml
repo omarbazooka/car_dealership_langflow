@@ -1,0 +1,22 @@
+services:
+  langflow:
+    build: .
+    container_name: car-dealership-langflow
+    ports:
+      - "127.0.0.1:7860:7860"
+    environment:
+      LANGFLOW_AUTO_LOGIN: "true"   # local prototype only
+      LANGFLOW_SKIP_AUTH_AUTO_LOGIN: "true"   # local-only API runs; never use on a public bind
+      LANGFLOW_COMPONENTS_PATH: /app/components
+      PYTHONPATH: /app/lib:/app/components
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY}
+      CAR_DEALERSHIP_DB: /data/car_dealership.db
+    volumes:
+      - ./components:/app/components:ro
+      - ./lib:/app/lib:ro
+      - ./knowledge:/app/knowledge:ro
+      - ./scripts:/app/scripts:ro
+      - ./flow:/app/flow
+      - ./data:/app/data
+      - ./runtime:/data
+    command: ["langflow", "run", "--host", "0.0.0.0", "--port", "7860", "--components-path", "/app/components"]

@@ -1,0 +1,107 @@
+{
+  "status": "PASS",
+  "missing": [],
+  "python_syntax": {
+    "components/__init__.py": "PASS",
+    "components/car_dealership/__init__.py": "PASS",
+    "components/car_dealership/compare_cars.py": "PASS",
+    "components/car_dealership/create_sales_lead.py": "PASS",
+    "components/car_dealership/create_test_drive.py": "PASS",
+    "components/car_dealership/gemini_sales_agent.py": "PASS",
+    "components/car_dealership/get_car_details.py": "PASS",
+    "components/car_dealership/input_guardrails.py": "PASS",
+    "components/car_dealership/knowledge_rag.py": "PASS",
+    "components/car_dealership/output_guardrails.py": "PASS",
+    "components/car_dealership/search_used_cars.py": "PASS",
+    "lib/car_dealership_core.py": "PASS",
+    "scripts/build_and_install_flow.py": "PASS",
+    "scripts/download_kaggle.py": "PASS",
+    "scripts/prepare_db.py": "PASS",
+    "scripts/smoke_test.py": "PASS",
+    "scripts/validate_package.py": "PASS"
+  },
+  "smoke_test": {
+    "status": "PASS",
+    "db": "/mnt/data/car_dealership_langflow/runtime/smoke_test.db",
+    "steps": [
+      {
+        "import": 10
+      },
+      {
+        "search_ids": [
+          8,
+          5,
+          1,
+          9,
+          4
+        ],
+        "first": {
+          "id": 8,
+          "brand": "Renault",
+          "model": "Duster",
+          "price": 12800.0,
+          "city": "Giza",
+          "fuel": "Gasoline",
+          "transmission": "Automatic",
+          "drive": "FWD",
+          "mileage": 65000.0,
+          "origin": "France",
+          "engine_capacity": 1.6,
+          "engine_power": 115.0,
+          "age": 4.0,
+          "year": 2022
+        }
+      },
+      {
+        "test_drive": 1
+      },
+      {
+        "sales_lead": 1
+      },
+      {
+        "memory": [
+          {
+            "role": "user",
+            "content": "I want an automatic car under 20000"
+          },
+          {
+            "role": "assistant",
+            "content": "I found car id 8"
+          }
+        ]
+      },
+      {
+        "rag_fallback_sources": [
+          "Test Drive Policy — Demo Data",
+          "Dealership FAQ — Demo Data"
+        ]
+      },
+      {
+        "guardrails": "PASS"
+      },
+      {
+        "db_actions": {
+          "test_drives": 1,
+          "sales_leads": 1
+        }
+      }
+    ]
+  },
+  "sha256": {
+    "components/car_dealership/input_guardrails.py": "bbbc77afc3b3720a20ff84cfbc2cdf34e01ef7859fda7ee07af0dbab34db1e77",
+    "components/car_dealership/gemini_sales_agent.py": "68f62198e18bffdd27adaaf37f4f5d2a0688bfa447f9f3d2ce82257f373b6ed1",
+    "components/car_dealership/search_used_cars.py": "726818ca0c74807b04c3057d33394cce759097fada752d012a1d8ae896a4a864",
+    "components/car_dealership/get_car_details.py": "9783fd148c5f5e9fe1e574627831d18c8fdfe4d0565ca86a4b61864e248d4a1c",
+    "components/car_dealership/compare_cars.py": "d83c260d87331b29b2ae290714da0cc021b1bd96edf971a3cb6ba29dda3abd2a",
+    "components/car_dealership/knowledge_rag.py": "10ba005675cf820c7aaefa167b6da8b53607d6e77363146a52d6a1296e8a85e5",
+    "components/car_dealership/create_test_drive.py": "b08ed0087c1ad8e3a37a1340c950a052c6f5129c90a6284d3765f185b24821cd",
+    "components/car_dealership/create_sales_lead.py": "4c491c965e22d32b6fd03be71d014f1e9fcd1f16ee1ba83e6fe8459188b1efec",
+    "components/car_dealership/output_guardrails.py": "44ac9b2e8296ea0825fdd3381793629d67d2b9465c2c3ff6103f3ada3530bbc0",
+    "lib/car_dealership_core.py": "2c6af6d1d21963466cb4a1b9d3ed417f8f69caaf1415403b4b99f80539f24028",
+    "scripts/build_and_install_flow.py": "23ac7f3ca89ff2e8448c465daa03d151e17c3afe17935585914076a795ef1045",
+    "scripts/prepare_db.py": "3ec845d4a608ef53b9436c049b962bb4d802748a4e865cb386f9bbaadbda60ac",
+    "scripts/smoke_test.py": "49e4d4e4a3be970dedcdc16066a35702b946f2690723503be8031717bbbe1f6c",
+    "data/sample_used_cars.csv": "04ff164a20209fb4cd5ec32e4bfce34ec149cb7f19a1392a14e95f921d5c8766",
+    "README.md": "936cf335307e378d0428bf10daa27a27123bfca438d9e9f83b2b1ad18d74f5bd"
+  }
+}
