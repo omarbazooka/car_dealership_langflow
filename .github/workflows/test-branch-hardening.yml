@@ -1,0 +1,80 @@
+name: Test Branch Hardening
+
+on:
+  push:
+    branches:
+      - test
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  hardening-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GOOGLE_API_KEY: dummy-ci-key
+
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+
+      - name: Prepare writable runtime directories
+        run: |
+          mkdir -p runtime flow
+          chmod -R a+rwX runtime flow
+
+      - name: Build Langflow image
+        run: docker compose build
+
+      - name: Start Langflow
+        run: docker compose up -d
+
+      - name: Wait for Langflow health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:7860/health >/tmp/health.json; then
+              cat /tmp/health.json
+              exit 0
+            fi
+            sleep 2
+          done
+          docker compose logs --no-color langflow
+          exit 1
+
+      - name: Prepare deterministic catalog database
+        run: |
+          docker compose exec -T langflow /app/.venv/bin/python \
+            /app/scripts/prepare_db.py /app/data/egypt_cars_combined.csv \
+            --db /data/car_dealership.db
+
+      - name: Compile changed Python modules
+        run: |
+          docker compose exec -T langflow /app/.venv/bin/python -m py_compile \
+            /app/lib/request_context.py \
+            /app/components/car_dealership/gemini_sales_agent.py \
+            /app/components/car_dealership/compare_cars.py \
+            /app/components/car_dealership/get_car_details.py \
+            /app/components/car_dealership/create_test_drive.py \
+            /app/components/car_dealership/create_sales_lead.py \
+            /app/components/car_dealership/output_guardrails.py \
+            /app/components/car_dealership/vehicle_research_agent.py \
+            /app/scripts/build_and_install_flow.py
+
+      - name: Run hardening regression suite
+        run: |
+          docker compose exec -T langflow /app/.venv/bin/python \
+            /app/tests/run_all_hardening_tests.py
+
+      - name: Rebuild and install Langflow flow
+        run: |
+          docker compose exec -T langflow /app/.venv/bin/python \
+            /app/scripts/build_and_install_flow.py
+
+      - name: Verify health after flow install
+        run: curl -fsS http://127.0.0.1:7860/health
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=300 langflow

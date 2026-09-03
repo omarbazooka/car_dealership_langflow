@@ -8,7 +8,10 @@ from memory_manager import MemoryManager, get_current_session_id
 
 class CreateSalesLead(Component):
     display_name = "Create Sales Lead"
-    description = "Creates a REAL sales lead in SQLite when the customer wants a salesperson to contact them."
+    description = (
+        "Creates a REAL sales lead in SQLite only from the deterministic pending-action "
+        "state after the customer name and phone are confirmed."
+    )
     icon = "user-plus"
     name = "CreateSalesLead"
 
@@ -23,18 +26,46 @@ class CreateSalesLead(Component):
     outputs = [Output(display_name="Created Lead", name="lead", method="create_lead")]
 
     def create_lead(self) -> Data:
-        car_id = int(self.car_id) if getattr(self, "car_id", None) not in (None, "", 0) else None
-        result = create_sales_lead(
-            self.db_path or DEFAULT_DB,
-            self.customer_name,
-            self.phone,
-            car_id,
-            self.email or None,
-            self.notes or None,
-        )
+        db = self.db_path or DEFAULT_DB
         sid = get_current_session_id()
-        if sid and result.get("lead_id"):
-            MemoryManager(self.db_path or DEFAULT_DB).complete_pending_action(sid, result)
+        mm = MemoryManager(db)
+
+        action = mm.get_pending_action(sid) if sid else None
+        if not action or action.get("action_type") != "sales_lead":
+            result = {
+                "status": "blocked",
+                "reason": "no_pending_sales_lead",
+                "missing_fields": ["pending_action"],
+                "message": "لازم يبدأ طلب تواصل مع المبيعات الأول قبل إنشاء الـLead.",
+            }
+            self.status = result
+            return Data(data=result)
+
+        payload = action.get("payload", {})
+        missing = [field for field in ("customer_name", "phone") if not payload.get(field)]
+        if missing:
+            result = {
+                "status": "blocked",
+                "reason": "pending_action_incomplete",
+                "action_id": action.get("id"),
+                "missing_fields": missing,
+                "message": "طلب المبيعات لم يتم لأن بيانات التواصل غير مكتملة.",
+            }
+            self.status = result
+            return Data(data=result)
+
+        car_id = action.get("entity_id") or payload.get("car_id")
+        result = create_sales_lead(
+            db,
+            str(payload["customer_name"]),
+            str(payload["phone"]),
+            int(car_id) if car_id else None,
+            payload.get("email") or self.email or None,
+            payload.get("notes") or self.notes or None,
+        )
+        if result.get("lead_id"):
+            mm.complete_pending_action(sid, result)
+
         data = Data(data=result)
         self.status = result
         return data
