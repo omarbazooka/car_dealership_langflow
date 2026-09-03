@@ -11,7 +11,7 @@ sys.path.extend([
 
 from lfx.schema import Message
 
-from car_dealership_core import DEFAULT_DB, create_test_drive, get_test_drive_requests, init_db
+from car_dealership_core import DEFAULT_DB, cancel_test_drive, create_test_drive, get_test_drive_requests, init_db
 from cancel_test_drive import CancelTestDrive
 from compare_cars import CompareCars
 from create_test_drive import CreateTestDrive
@@ -31,6 +31,13 @@ class TestLivePathGuards(unittest.TestCase):
     def _session(self, suffix: str) -> str:
         return f"live-guard-{suffix}-{uuid.uuid4().hex[:8]}"
 
+    def _agent(self, sid: str, text: str) -> Message:
+        agent = GeminiCarSalesAgent()
+        agent.google_api_key = "dummy-ci-key"
+        agent.db_path = self.db_path
+        agent.input_value = Message(text=text, session_id=sid)
+        return agent.run_agent()
+
     def test_compare_uses_visible_snapshot_not_llm_hidden_ids(self):
         sid = self._session("compare")
         mm = MemoryManager(self.db_path)
@@ -49,7 +56,6 @@ class TestLivePathGuards(unittest.TestCase):
         tool = CompareCars()
         tool.db_path = self.db_path
         tool.session_id = sid
-        # Simulate the exact bad live LLM call from the regression: hidden variants.
         tool.car_ids = "9067,9069"
         result = tool.run_compare().data
 
@@ -81,7 +87,6 @@ class TestLivePathGuards(unittest.TestCase):
         tool.phone = "01012345678"
         tool.car_id = 9067
         tool.preferred_date = "السبت"
-        # Malicious/incorrect LLM guess: the memory still does not have a time.
         tool.preferred_time = "5 مساء"
         tool.notes = ""
         blocked = tool.create_request().data
@@ -95,7 +100,6 @@ class TestLivePathGuards(unittest.TestCase):
         after_one = len(get_test_drive_requests(self.db_path, phone="01012345678", limit=500))
         self.assertEqual(after_one, before + 1)
 
-        # Retrying the same tool after action completion cannot insert again.
         retry = tool.create_request().data
         self.assertEqual(retry["status"], "blocked")
         self.assertEqual(len(get_test_drive_requests(self.db_path, phone="01012345678", limit=500)), after_one)
@@ -111,22 +115,81 @@ class TestLivePathGuards(unittest.TestCase):
         )
         before = len(get_test_drive_requests(self.db_path, phone="01012345678", limit=500))
 
-        agent = GeminiCarSalesAgent()
-        agent.google_api_key = "dummy-ci-key"
-        agent.db_path = self.db_path
-        agent.input_value = Message(text="السبت", session_id=sid)
-        response = agent.run_agent()
-
+        response = self._agent(sid, "السبت")
         self.assertIn("الساعة", response.text)
         self.assertEqual(len(get_test_drive_requests(self.db_path, phone="01012345678", limit=500)), before)
         pending = mm.get_pending_action(sid)
         self.assertEqual(pending["payload"]["preferred_date"], "السبت")
         self.assertFalse(pending["payload"].get("preferred_time"))
 
-        agent.input_value = Message(text="الساعة 5 مساء", session_id=sid)
-        response2 = agent.run_agent()
+        response2 = self._agent(sid, "الساعة 5 مساء")
         self.assertIn("رقم الحجز", response2.text)
         self.assertEqual(len(get_test_drive_requests(self.db_path, phone="01012345678", limit=500)), before + 1)
+
+    def test_rebook_after_cancel_reuses_only_explicitly_confirmed_previous_data(self):
+        sid = self._session("rebook")
+        mm = MemoryManager(self.db_path)
+        mm.set_selected_car(sid, 9638)
+
+        mm.create_pending_action(
+            sid,
+            "test_drive",
+            entity_id=9638,
+            payload={
+                "customer_name": "عمر أحمد",
+                "phone": "01012345678",
+                "preferred_date": "السبت",
+                "preferred_time": "5 مساء",
+            },
+        )
+        original = create_test_drive(
+            self.db_path, "عمر أحمد", "01012345678", 9638, "السبت", "5 مساء"
+        )
+        mm.complete_pending_action(sid, original)
+        cancel_test_drive(self.db_path, original["request_id"], notes="test cancellation")
+
+        before = len(get_test_drive_requests(self.db_path, phone="01012345678", limit=500))
+
+        start = self._agent(sid, "خلاص عايز احجز من تاني")
+        self.assertIn("حجز جديد", start.text)
+        self.assertEqual(len(get_test_drive_requests(self.db_path, phone="01012345678", limit=500)), before)
+        pending = mm.get_pending_action(sid)
+        self.assertIsNotNone(pending)
+        self.assertIsNone(pending["payload"].get("customer_name"))
+        self.assertIsNone(pending["payload"].get("phone"))
+        self.assertEqual(pending["payload"].get("_candidate_phone"), "01012345678")
+
+        same_schedule = self._agent(sid, "اه بنفس الايام والساعه اللي قولناها")
+        self.assertIn("أستخدم نفس بيانات التواصل", same_schedule.text)
+        pending = mm.get_pending_action(sid)
+        self.assertEqual(pending["payload"].get("preferred_date"), "السبت")
+        self.assertEqual(pending["payload"].get("preferred_time"), "5 مساء")
+        self.assertIsNone(pending["payload"].get("phone"))
+        self.assertEqual(len(get_test_drive_requests(self.db_path, phone="01012345678", limit=500)), before)
+
+        confirmed = self._agent(sid, "اه")
+        self.assertIn("رقم الحجز", confirmed.text)
+        self.assertEqual(len(get_test_drive_requests(self.db_path, phone="01012345678", limit=500)), before + 1)
+        self.assertIsNone(mm.get_pending_action(sid))
+
+    def test_abandon_purchase_clears_pending_rebook_and_returns_nonempty_response(self):
+        sid = self._session("abandon")
+        mm = MemoryManager(self.db_path)
+        mm.create_pending_action(
+            sid,
+            "test_drive",
+            entity_id=9638,
+            payload={
+                "customer_name": None,
+                "phone": None,
+                "preferred_date": None,
+                "preferred_time": None,
+            },
+        )
+        response = self._agent(sid, "مش شاري يعم خلاص فكك")
+        self.assertTrue(response.text.strip())
+        self.assertIn("مش هيتسجل", response.text)
+        self.assertIsNone(mm.get_pending_action(sid))
 
     def test_cancel_tool_is_scoped_to_current_session(self):
         sid_a = self._session("cancel-a")
