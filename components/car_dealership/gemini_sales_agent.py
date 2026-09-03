@@ -43,7 +43,7 @@ You are AutoDrive Egypt AI, a concise Egyptian car-sales and customer-service or
 Mirror the customer's language. If they write Egyptian Arabic, answer naturally in Egyptian Arabic.
 
 GROUNDING
-- Never invent inventory, price, mileage, availability, vehicle specs, booking IDs, cancellation status, or lead IDs.
+- Never invent inventory, price, mileage, availability, vehicle specs, booking IDs, cancellation status, contact data, or lead IDs.
 - Imported catalog rows are NOT guaranteed live stock. Say "حسب البيانات المتاحة عندي" / "ضمن البيانات المسجلة".
 - Current structured state is authoritative for what the customer wants NOW.
 - Historical summary is only historical context and must never override current structured state.
@@ -55,6 +55,7 @@ GROUNDING
 - Never call a third-party marketplace/database "official".
 - Never claim a test-drive booking unless the deterministic workflow has all required fields and the DB returns request_id.
 - Never claim cancellation unless the actual DB row was updated.
+- Business contact/schedule fields come only from deterministic pending-action state, never from summary guesses.
 """.strip()
 
 SUMMARIZER_INSTRUCTION = r"""
@@ -94,6 +95,15 @@ class GeminiCarSalesAgent(Component):
 
     def _session_id(self, msg: Message) -> str:
         return getattr(msg, "session_id", "") or getattr(self.graph, "session_id", "") or "langflow-playground"
+
+    @staticmethod
+    def _norm(text: str) -> str:
+        t = str(text or "").lower()
+        t = re.sub(r"[إأآا]", "ا", t)
+        t = re.sub(r"ة", "ه", t)
+        t = re.sub(r"[يى]", "ي", t)
+        t = re.sub(r"[\u064B-\u065F\u0670]", "", t)
+        return re.sub(r"\s+", " ", t).strip()
 
     @staticmethod
     def _missing_test_drive_fields(action: dict[str, Any]) -> list[str]:
@@ -147,6 +157,53 @@ class GeminiCarSalesAgent(Component):
     def _is_selection_phrase(text: str) -> bool:
         t = str(text or "").lower()
         return any(x in t for x in ("عجبتني", "خلينا في", "اختار", "اخترت", "مهتم بـ", "مهتم ب"))
+
+    @classmethod
+    def _is_rebook_intent(cls, text: str) -> bool:
+        t = cls._norm(text)
+        return bool(
+            re.search(r"(?:احجز|حجز|test drive|تجربه قياده).*(?:من\s*تاني|تاني|جديد)", t)
+            or re.search(r"(?:عايز|عاوز).*(?:احجز|حجز).*(?:تاني|من\s*تاني)", t)
+        )
+
+    @classmethod
+    def _is_affirmative(cls, text: str) -> bool:
+        t = cls._norm(text)
+        return t in {
+            "اه", "ايوه", "نعم", "موافق", "تمام", "اوك", "ok", "سجل", "سجل اه",
+            "موافق لتسجيل الحجز", "تاكيد حجز تجربه القياده", "تاكيد الحجز",
+        }
+
+    @classmethod
+    def _wants_same_schedule(cls, text: str) -> bool:
+        t = cls._norm(text)
+        return bool(
+            ("نفس" in t or "بنفس" in t)
+            and any(k in t for k in ("ميعاد", "معاد", "موعد", "يوم", "ايام", "ساعه", "وقت"))
+        )
+
+    @classmethod
+    def _wants_same_contact(cls, text: str) -> bool:
+        t = cls._norm(text)
+        return bool(
+            ("نفس" in t or "بنفس" in t)
+            and any(k in t for k in ("بيانات", "اسم", "رقم", "موبايل", "تليفون", "هاتف"))
+        )
+
+    @classmethod
+    def _is_abandon_purchase(cls, text: str) -> bool:
+        t = cls._norm(text)
+        return bool(
+            re.search(r"مش\s*(?:شاري|هشتري|عايز\s*اشتري)", t)
+            or re.search(r"(?:خلاص\s*)?(?:فكك|سيب\s*الموضوع|مش\s*عايز\s*اكمل)", t)
+        )
+
+    @staticmethod
+    def _mask_phone(phone: str | None) -> str:
+        digits = re.sub(r"\D", "", str(phone or ""))
+        if len(digits) < 4:
+            return "الرقم السابق"
+        return "***" + digits[-4:]
 
     @staticmethod
     def _format_recommendations(rec_set: list[dict[str, Any]], criteria: dict[str, Any]) -> str:
@@ -224,12 +281,12 @@ class GeminiCarSalesAgent(Component):
         set_current_user_text(user_text)
         mm = MemoryManager(db_path)
 
-        # 1) Current explicit preferences are applied BEFORE selection/action handling.
+        # 1) Apply current explicit preferences first.
         new_prefs = extract_preferences(user_text)
         if new_prefs:
             mm.apply_preference_updates_and_invalidate(session_id, new_prefs)
 
-        # 2) Cancellation is session-scoped only. Never cancel a global "latest" booking.
+        # 2) Explicit cancellation: pending action first, otherwise current session's latest completed booking.
         if detect_cancellation(user_text):
             pending = mm.get_pending_action(session_id)
             if pending:
@@ -254,7 +311,17 @@ class GeminiCarSalesAgent(Component):
                 "مش لاقي حجز مكتمل مرتبط بالمحادثة دي أقدر ألغيه تلقائياً.",
             )
 
-        # 3) Reschedule/new-details only manipulate pending state; they never insert.
+        # Customer abandons purchase/rebooking: clear only unfinished work, never silently cancel a completed booking.
+        if self._is_abandon_purchase(user_text):
+            had_pending = mm.cancel_pending_action(session_id)
+            response = (
+                "تمام، قفلت الطلب اللي كان لسه قيد التجهيز ومش هيتسجل منه حجز جديد."
+                if had_pending
+                else "تمام، مفيش مشكلة. مش هبدأ أي حجز أو طلب جديد."
+            )
+            return self._persist_direct(mm, session_id, user_text, response)
+
+        # 3) Reschedule/new-details manipulate pending state only; never insert immediately.
         if detect_reschedule(user_text):
             selected = mm.get_selected_car(session_id)
             ref_res = resolve_recommendation_reference(session_id, user_text, db_path)
@@ -312,14 +379,73 @@ class GeminiCarSalesAgent(Component):
         active_action = mm.get_pending_action(session_id)
         if active_action:
             action_type = active_action.get("action_type")
-            updates = extract_action_inputs(action_type, user_text, active_action.get("payload", {}))
+            payload = active_action.get("payload", {})
+
+            reuse_updates: dict[str, Any] = {}
+            same_schedule = self._wants_same_schedule(user_text)
+            same_contact = self._wants_same_contact(user_text)
+            affirmative = self._is_affirmative(user_text)
+
+            if action_type == "test_drive":
+                if same_schedule:
+                    if payload.get("_candidate_preferred_date"):
+                        reuse_updates["preferred_date"] = payload.get("_candidate_preferred_date")
+                    if payload.get("_candidate_preferred_time"):
+                        reuse_updates["preferred_time"] = payload.get("_candidate_preferred_time")
+                    reuse_updates["_awaiting_schedule_confirmation"] = False
+                if same_contact:
+                    if payload.get("_candidate_customer_name"):
+                        reuse_updates["customer_name"] = payload.get("_candidate_customer_name")
+                    if payload.get("_candidate_phone"):
+                        reuse_updates["phone"] = payload.get("_candidate_phone")
+                    reuse_updates["_awaiting_contact_confirmation"] = False
+                if affirmative:
+                    if payload.get("_awaiting_schedule_confirmation"):
+                        if payload.get("_candidate_preferred_date"):
+                            reuse_updates["preferred_date"] = payload.get("_candidate_preferred_date")
+                        if payload.get("_candidate_preferred_time"):
+                            reuse_updates["preferred_time"] = payload.get("_candidate_preferred_time")
+                        reuse_updates["_awaiting_schedule_confirmation"] = False
+                    if payload.get("_awaiting_contact_confirmation"):
+                        if payload.get("_candidate_customer_name"):
+                            reuse_updates["customer_name"] = payload.get("_candidate_customer_name")
+                        if payload.get("_candidate_phone"):
+                            reuse_updates["phone"] = payload.get("_candidate_phone")
+                        reuse_updates["_awaiting_contact_confirmation"] = False
+
+            if reuse_updates:
+                active_action = mm.update_pending_action(session_id, payload_updates=reuse_updates) or active_action
+                payload = active_action.get("payload", {})
+
+            # Do not let a bare confirmation word become the customer's name.
+            updates = {} if affirmative else extract_action_inputs(action_type, user_text, payload)
             if updates:
                 active_action = mm.update_pending_action(session_id, payload_updates=updates) or active_action
+                payload = active_action.get("payload", {})
 
             if action_type == "test_drive":
                 missing = self._missing_test_drive_fields(active_action)
                 if missing:
+                    contact_missing = any(m in missing for m in ("customer_name", "phone"))
+                    schedule_missing = any(m in missing for m in ("preferred_date", "preferred_time"))
+                    if contact_missing and payload.get("_candidate_customer_name") and payload.get("_candidate_phone"):
+                        masked = self._mask_phone(payload.get("_candidate_phone"))
+                        if not schedule_missing:
+                            return self._persist_direct(
+                                mm,
+                                session_id,
+                                user_text,
+                                f"تمام، ثبتت نفس الموعد السابق. أستخدم نفس بيانات التواصل السابقة ({payload.get('_candidate_customer_name')} / {masked})؟",
+                            )
+                    if schedule_missing and payload.get("_candidate_preferred_date") and payload.get("_candidate_preferred_time"):
+                        return self._persist_direct(
+                            mm,
+                            session_id,
+                            user_text,
+                            f"تمام. لو عايز نفس الموعد السابق ({payload.get('_candidate_preferred_date')} / {payload.get('_candidate_preferred_time')}) قول «نفس المعاد»، أو ابعت الموعد الجديد.",
+                        )
                     return self._persist_direct(mm, session_id, user_text, self._ask_for_missing(missing, "test_drive"))
+
                 payload = active_action.get("payload", {})
                 car_id = active_action.get("entity_id") or payload.get("car_id")
                 try:
@@ -335,9 +461,11 @@ class GeminiCarSalesAgent(Component):
                     mm.complete_pending_action(session_id, result)
                     car = get_car(db_path, int(car_id))
                     car_name = f"{car.get('brand')} {car.get('model')}" if car else f"ID {car_id}"
+                    time_text = str(payload["preferred_time"])
+                    time_phrase = time_text if self._norm(time_text).startswith("الساعه") else f"الساعة {time_text}"
                     response = (
                         f"تم حجز تجربة القيادة بنجاح. رقم الحجز **#{result['request_id']}** "
-                        f"لـ **{car_name}** يوم {payload['preferred_date']} الساعة {payload['preferred_time']}."
+                        f"لـ **{car_name}** يوم {payload['preferred_date']} {time_phrase}."
                     )
                     return self._persist_direct(mm, session_id, user_text, response)
                 except Exception as exc:
@@ -380,19 +508,19 @@ class GeminiCarSalesAgent(Component):
                         "حصلت مشكلة أثناء تسجيل طلب التواصل، فمش هأكد إنه اتسجل.",
                     )
 
-        # 5) If preference changed, immediately show a fresh list from CURRENT state.
+        # 5) Fresh list after explicit preference changes.
         if new_prefs:
             response, _ = self._search_current_state(mm, session_id, db_path)
             if response:
                 return self._persist_direct(mm, session_id, user_text, response)
 
-        # 6) "Show me another car" should reuse known current state, never re-ask it.
+        # 6) Browse again reuses current structured state.
         if self._is_browse_again(user_text):
             response, _ = self._search_current_state(mm, session_id, db_path)
             if response:
                 return self._persist_direct(mm, session_id, user_text, response)
 
-        # 7) Ordinal selection is deterministic and only against an actually active snapshot.
+        # 7) Ordinal selection is deterministic and snapshot-scoped.
         ref_res = resolve_recommendation_reference(session_id, user_text, db_path)
         if self._has_ordinal(user_text):
             if ref_res.get("status") == "no_active_snapshot":
@@ -432,8 +560,12 @@ class GeminiCarSalesAgent(Component):
                     f"تمام، ثبتّ اختيارك على **{item.get('display_name')}** (رقم {item.get('position')} في القائمة الحالية).",
                 )
 
-        # 8) New business action requires a deterministic target; ambiguity is never guessed.
+        # 8) New/repeat business actions require deterministic target and state.
+        rebook_intent = self._is_rebook_intent(user_text)
         new_action_type, _ = detect_action_trigger(user_text)
+        if rebook_intent:
+            new_action_type = "test_drive"
+
         if new_action_type == "test_drive":
             ref_res = resolve_recommendation_reference(session_id, user_text, db_path)
             target = None
@@ -442,12 +574,55 @@ class GeminiCarSalesAgent(Component):
             if not target:
                 target = mm.get_selected_car(session_id)
             if not target:
+                last_completed = mm.get_last_completed_action(session_id, action_type="test_drive")
+                target = (last_completed or {}).get("entity_id")
+            if not target:
                 return self._persist_direct(
                     mm,
                     session_id,
                     user_text,
                     "تمام، بس لازم تحددلي العربية الأول من آخر قائمة ظاهرة قبل ما أبدأ طلب تجربة القيادة.",
                 )
+
+            if rebook_intent:
+                last_completed = mm.get_last_completed_action(session_id, action_type="test_drive")
+                old_payload = (last_completed or {}).get("payload", {})
+                mm.create_pending_action(
+                    session_id,
+                    "test_drive",
+                    entity_id=int(target),
+                    payload={
+                        "customer_name": None,
+                        "phone": None,
+                        "preferred_date": None,
+                        "preferred_time": None,
+                        "notes": None,
+                        "_candidate_customer_name": old_payload.get("customer_name"),
+                        "_candidate_phone": old_payload.get("phone"),
+                        "_candidate_preferred_date": old_payload.get("preferred_date"),
+                        "_candidate_preferred_time": old_payload.get("preferred_time"),
+                        "_awaiting_contact_confirmation": bool(old_payload.get("customer_name") and old_payload.get("phone")),
+                        "_awaiting_schedule_confirmation": bool(old_payload.get("preferred_date") and old_payload.get("preferred_time")),
+                    },
+                )
+                mm.set_selected_car(session_id, int(target))
+                action = mm.get_pending_action(session_id) or {}
+                p = action.get("payload", {})
+                car = get_car(db_path, int(target))
+                car_name = f"{car.get('brand')} {car.get('model')}" if car else f"ID {target}"
+                if p.get("_candidate_customer_name") and p.get("_candidate_preferred_date") and p.get("_candidate_preferred_time"):
+                    return self._persist_direct(
+                        mm,
+                        session_id,
+                        user_text,
+                        (
+                            f"تمام، هنبدأ **حجز جديد** لـ **{car_name}**؛ لسه مفيش حجز جديد اتسجل. "
+                            f"لو عايز نفس بيانات التواصل ونفس الموعد السابق قول «نفس البيانات ونفس المعاد»، "
+                            f"أو قول بس «نفس المعاد» لو هتغيّر بيانات التواصل."
+                        ),
+                    )
+                return self._persist_direct(mm, session_id, user_text, self._ask_for_missing(self._missing_test_drive_fields(action), "test_drive"))
+
             mm.create_pending_action(session_id, "test_drive", entity_id=int(target))
             mm.set_selected_car(session_id, int(target))
             action = mm.get_pending_action(session_id)
