@@ -11,7 +11,8 @@ sys.path.extend([
 
 from lfx.schema import Message
 
-from car_dealership_core import DEFAULT_DB, get_test_drive_requests, init_db
+from car_dealership_core import DEFAULT_DB, create_test_drive, get_test_drive_requests, init_db
+from cancel_test_drive import CancelTestDrive
 from compare_cars import CompareCars
 from create_test_drive import CreateTestDrive
 from gemini_sales_agent import GeminiCarSalesAgent
@@ -126,6 +127,58 @@ class TestLivePathGuards(unittest.TestCase):
         response2 = agent.run_agent()
         self.assertIn("رقم الحجز", response2.text)
         self.assertEqual(len(get_test_drive_requests(self.db_path, phone="01012345678", limit=500)), before + 1)
+
+    def test_cancel_tool_is_scoped_to_current_session(self):
+        sid_a = self._session("cancel-a")
+        sid_b = self._session("cancel-b")
+        mm = MemoryManager(self.db_path)
+
+        mm.create_pending_action(
+            sid_a, "test_drive", entity_id=9067,
+            payload={
+                "customer_name": "عميل أ",
+                "phone": "01011111111",
+                "preferred_date": "السبت",
+                "preferred_time": "5 مساء",
+            },
+        )
+        booking_a = create_test_drive(
+            self.db_path, "عميل أ", "01011111111", 9067, "السبت", "5 مساء"
+        )
+        mm.complete_pending_action(sid_a, booking_a)
+
+        mm.create_pending_action(
+            sid_b, "test_drive", entity_id=9067,
+            payload={
+                "customer_name": "عميل ب",
+                "phone": "01022222222",
+                "preferred_date": "الأحد",
+                "preferred_time": "4 مساء",
+            },
+        )
+        booking_b = create_test_drive(
+            self.db_path, "عميل ب", "01022222222", 9067, "الأحد", "4 مساء"
+        )
+        mm.complete_pending_action(sid_b, booking_b)
+
+        set_current_session_id(sid_a)
+        tool = CancelTestDrive()
+        tool.db_path = self.db_path
+        tool.session_id = sid_a
+        tool.request_id = booking_b["request_id"]
+        tool.notes = "wrong session attempt"
+        blocked = tool.run_cancel().data
+        self.assertEqual(blocked["status"], "blocked")
+
+        tool.request_id = None
+        cancelled = tool.run_cancel().data
+        self.assertTrue(cancelled["success"])
+        self.assertEqual(cancelled["request_id"], booking_a["request_id"])
+
+        a_row = get_test_drive_requests(self.db_path, phone="01011111111", limit=20)[0]
+        b_row = get_test_drive_requests(self.db_path, phone="01022222222", limit=20)[0]
+        self.assertEqual(a_row["status"], "CANCELLED")
+        self.assertNotEqual(b_row["status"], "CANCELLED")
 
     def test_output_guard_removes_live_stock_and_false_official_third_party_wording(self):
         text = "دي أفضل العربيات المتاحة حالياً عندنا. حسب المواصفات الرسمية في EgyCars العربية فيها 6 Airbags."

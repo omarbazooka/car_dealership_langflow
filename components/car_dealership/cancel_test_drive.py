@@ -1,17 +1,16 @@
-import json
 from lfx.custom import Component
 from lfx.io import IntInput, MessageTextInput, Output
 from lfx.schema import Data
 
-from car_dealership_core import DEFAULT_DB, cancel_test_drive, get_test_drive_requests
+from car_dealership_core import DEFAULT_DB, cancel_test_drive
 from memory_manager import MemoryManager, get_current_session_id
 
 
 class CancelTestDrive(Component):
     display_name = "Cancel Test Drive"
     description = (
-        "Formally cancel an existing test drive booking in the database. "
-        "Use this tool whenever a customer asks to cancel a previously confirmed test drive booking."
+        "Formally cancel a test-drive booking linked to the current conversation session. "
+        "Never falls back to a global latest booking."
     )
     icon = "calendar-x"
     name = "CancelTestDrive"
@@ -27,50 +26,60 @@ class CancelTestDrive(Component):
     def run_cancel(self) -> Data:
         db = self.db_path or DEFAULT_DB
         sid = getattr(self, "session_id", None) or get_current_session_id()
-        req_id = getattr(self, "request_id", None)
-        notes = getattr(self, "notes", None)
-
         mm = MemoryManager(db)
-        if not req_id and sid:
-            # Look up last completed test drive action for this session
-            last_action = mm.get_last_completed_action(sid, action_type="test_drive")
-            if last_action:
-                result_meta = last_action.get("payload", {}).get("_result", {})
-                req_id = result_meta.get("request_id")
-            if not req_id:
-                # Look up recent test drive requests for customer
-                recent_reqs = get_test_drive_requests(db, limit=5)
-                if recent_reqs:
-                    req_id = recent_reqs[0]["id"]
 
-        if not req_id:
-            res_data = {
+        if not sid:
+            result = {
                 "success": False,
-                "status": "not_found",
-                "message": "لم يتم العثور على حجز تجربة قيادة سابق لإلغائه.",
+                "status": "blocked",
+                "message": "تعذر تحديد جلسة المحادثة، لذلك لن يتم إلغاء أي حجز تلقائياً.",
             }
-            self.status = res_data
-            return Data(data=res_data)
+            self.status = result
+            return Data(data=result)
 
-        req_id = int(req_id)
-        success = cancel_test_drive(db, req_id, notes=notes or "Customer requested cancellation")
+        last_action = mm.get_last_completed_action(sid, action_type="test_drive")
+        session_request_id = None
+        if last_action:
+            session_request_id = (last_action.get("payload", {}).get("_result") or {}).get("request_id")
 
-        if success:
-            if sid:
-                mm.cancel_pending_action(sid)
-            res_data = {
-                "success": True,
-                "status": "cancelled",
-                "request_id": req_id,
-                "message": f"تم إلغاء حجز تجربة القيادة رقم #{req_id} بنجاح في النظام.",
-            }
+        requested_id = getattr(self, "request_id", None)
+        if requested_id not in (None, "", 0):
+            requested_id = int(requested_id)
+            # Never let an LLM-supplied request ID escape the current session lineage.
+            if not session_request_id or requested_id != int(session_request_id):
+                result = {
+                    "success": False,
+                    "status": "blocked",
+                    "request_id": requested_id,
+                    "message": "رقم الحجز المطلوب مش مرتبط بآخر حجز مؤكد في المحادثة دي، لذلك لم يتم إلغاؤه.",
+                }
+                self.status = result
+                return Data(data=result)
+            request_id = requested_id
         else:
-            res_data = {
-                "success": False,
-                "status": "failed",
-                "request_id": req_id,
-                "message": f"تعذر إلغاء الحجز رقم #{req_id} أو أنه ملغي بالفعل.",
-            }
+            request_id = int(session_request_id) if session_request_id else None
 
-        self.status = res_data
-        return Data(data=res_data)
+        if not request_id:
+            pending_cancelled = mm.cancel_pending_action(sid)
+            result = {
+                "success": bool(pending_cancelled),
+                "status": "cancelled_pending" if pending_cancelled else "not_found",
+                "message": (
+                    "تم إلغاء الطلب اللي كان لسه قيد التجهيز، ومفيش حجز مكتمل اتأثر."
+                    if pending_cancelled
+                    else "مش لاقي حجز مكتمل مرتبط بالمحادثة دي لإلغائه."
+                ),
+            }
+            self.status = result
+            return Data(data=result)
+
+        cancelled = cancel_test_drive(db, request_id, notes=self.notes or "Customer requested cancellation")
+        result = {
+            "success": cancelled.get("status") == "CANCELLED",
+            "status": "cancelled" if cancelled.get("status") == "CANCELLED" else "failed",
+            "request_id": request_id,
+            "cancelled_at": cancelled.get("cancelled_at"),
+            "message": f"تم إلغاء حجز تجربة القيادة رقم #{request_id} بنجاح في النظام.",
+        }
+        self.status = result
+        return Data(data=result)
