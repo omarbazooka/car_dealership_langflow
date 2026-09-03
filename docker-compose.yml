@@ -16,6 +16,7 @@ services:
       - ./lib:/app/lib:ro
       - ./knowledge:/app/knowledge:ro
       - ./scripts:/app/scripts:ro
+      - ./tests:/app/tests:ro
       - ./flow:/app/flow
       - ./data:/app/data
       - ./runtime:/data

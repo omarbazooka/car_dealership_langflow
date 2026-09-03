@@ -3,6 +3,7 @@ from lfx.io import IntInput, MessageTextInput, Output
 from lfx.schema import Data
 
 from car_dealership_core import DEFAULT_DB, create_sales_lead
+from memory_manager import MemoryManager, get_current_session_id
 
 
 class CreateSalesLead(Component):
@@ -31,6 +32,9 @@ class CreateSalesLead(Component):
             self.email or None,
             self.notes or None,
         )
+        sid = get_current_session_id()
+        if sid and result.get("lead_id"):
+            MemoryManager(self.db_path or DEFAULT_DB).complete_pending_action(sid, result)
         data = Data(data=result)
         self.status = result
         return data

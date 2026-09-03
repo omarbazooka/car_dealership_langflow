@@ -4,9 +4,9 @@ Overall status: **FAIL**
 
 - FAIL: balanced_dataset_target
 - PASS: live_database_integrity
-- PASS: structured_search_new_suv_automatic_budget
+- FAIL: structured_search_new_suv_automatic_budget
 - PASS: structured_search_used_gasoline_year_budget
-- PASS: comparison_by_prior_ids
+- NOT TESTED: comparison_by_prior_ids
 - PASS: persistent_conversation_memory
 - PASS: real_business_action_inserts
 - PASS: rag_policy_retrieval_fallback

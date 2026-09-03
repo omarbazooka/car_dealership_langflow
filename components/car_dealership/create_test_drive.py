@@ -3,6 +3,7 @@ from lfx.io import IntInput, MessageTextInput, Output
 from lfx.schema import Data
 
 from car_dealership_core import DEFAULT_DB, create_test_drive
+from memory_manager import MemoryManager, get_current_session_id
 
 
 class CreateTestDrive(Component):
@@ -32,6 +33,9 @@ class CreateTestDrive(Component):
             self.preferred_time,
             self.notes or None,
         )
+        sid = get_current_session_id()
+        if sid and result.get("request_id"):
+            MemoryManager(self.db_path or DEFAULT_DB).complete_pending_action(sid, result)
         data = Data(data=result)
         self.status = result
         return data

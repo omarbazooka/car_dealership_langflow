@@ -1,6 +1,8 @@
 {
-  "status": "PASS",
-  "missing": [],
+  "status": "FAIL",
+  "missing": [
+    "README.md"
+  ],
   "python_syntax": {
     "components/__init__.py": "PASS",
     "components/car_dealership/__init__.py": "PASS",
@@ -14,6 +16,7 @@
     "components/car_dealership/output_guardrails.py": "PASS",
     "components/car_dealership/search_used_cars.py": "PASS",
     "lib/car_dealership_core.py": "PASS",
+    "lib/memory_manager.py": "PASS",
     "scripts/build_and_install_flow.py": "PASS",
     "scripts/build_egypt_car_dataset.py": "PASS",
     "scripts/download_kaggle.py": "PASS",
@@ -152,19 +155,18 @@
   },
   "sha256": {
     "components/car_dealership/input_guardrails.py": "bbbc77afc3b3720a20ff84cfbc2cdf34e01ef7859fda7ee07af0dbab34db1e77",
-    "components/car_dealership/gemini_sales_agent.py": "edd90e8f215c114337570885c1d67bbfe321795d7de48409b9949065f7ba2436",
-    "components/car_dealership/search_used_cars.py": "6623dd006c13d31497e535407d0dd9bfb60d54adfffb73f2a40a4f4389f2d9a9",
-    "components/car_dealership/get_car_details.py": "9783fd148c5f5e9fe1e574627831d18c8fdfe4d0565ca86a4b61864e248d4a1c",
-    "components/car_dealership/compare_cars.py": "d83c260d87331b29b2ae290714da0cc021b1bd96edf971a3cb6ba29dda3abd2a",
+    "components/car_dealership/gemini_sales_agent.py": "fd8721d7ce63ef909bfc11ef07a987a406209c6c85df774ed7ca78049c49dd23",
+    "components/car_dealership/search_used_cars.py": "ebb82a2ee1e6fbba5ab9f5ef456f1815edb8669b8ce855c43221c54f5e1bea5f",
+    "components/car_dealership/get_car_details.py": "ba57a0b3879008a54e3dc75f8733001740f8ca96fecb841a9a7a9f9f86c4a62d",
+    "components/car_dealership/compare_cars.py": "8e2280fdf697b151ebc6110ae18a882c9068e741db1fc8b3f82dfaee027b275a",
     "components/car_dealership/knowledge_rag.py": "10ba005675cf820c7aaefa167b6da8b53607d6e77363146a52d6a1296e8a85e5",
-    "components/car_dealership/create_test_drive.py": "b08ed0087c1ad8e3a37a1340c950a052c6f5129c90a6284d3765f185b24821cd",
-    "components/car_dealership/create_sales_lead.py": "4c491c965e22d32b6fd03be71d014f1e9fcd1f16ee1ba83e6fe8459188b1efec",
+    "components/car_dealership/create_test_drive.py": "933bb79c7e720e6bc9a94bfeeed96641a39b813d9000a8600333f90d7000d3ef",
+    "components/car_dealership/create_sales_lead.py": "f84aed65c60c205589fdfd42255eefac1c372f6da253c82a83c496f27023a174",
     "components/car_dealership/output_guardrails.py": "44ac9b2e8296ea0825fdd3381793629d67d2b9465c2c3ff6103f3ada3530bbc0",
-    "lib/car_dealership_core.py": "cc5fb708382937037a4406d891dbef9873cfa287f169a07597129db2433f73c9",
+    "lib/car_dealership_core.py": "5f75b1bf93a707da04dc37398fccb835dc9b696749625e2f5d06e394aacf15b0",
     "scripts/build_and_install_flow.py": "dccceec50d8dd73d16c1b8a80474ac9c02ad8768f808f6a8054fad66f1c27c88",
     "scripts/prepare_db.py": "d3cf76e7190532ef6c280415b778b40ea333a374f4be127bc2d637d850caa8fa",
     "scripts/smoke_test.py": "6a9e8d14612bc999f39bce18477e05091f0eeb754e4c4d21a8c0d961ae42116b",
-    "data/sample_used_cars.csv": "04ff164a20209fb4cd5ec32e4bfce34ec149cb7f19a1392a14e95f921d5c8766",
-    "README.md": "936cf335307e378d0428bf10daa27a27123bfca438d9e9f83b2b1ad18d74f5bd"
+    "data/sample_used_cars.csv": "04ff164a20209fb4cd5ec32e4bfce34ec149cb7f19a1392a14e95f921d5c8766"
   }
 }

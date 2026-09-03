@@ -28,7 +28,9 @@ REQUIRED = [
     "CompareCars",
     "DealershipKnowledgeRAG",
     "CreateTestDrive",
+    "CancelTestDrive",
     "CreateSalesLead",
+    "VehicleResearchAgent",
     "UnifiedWebSearch",
     "URLComponent",
     "OutputGuardrails",
@@ -117,7 +119,9 @@ async def main() -> None:
         configure_component(flow, ids["GetCarDetails"], {"db_path": "/data/car_dealership.db"})
         configure_component(flow, ids["CompareCars"], {"db_path": "/data/car_dealership.db"})
         configure_component(flow, ids["CreateTestDrive"], {"db_path": "/data/car_dealership.db"})
+        configure_component(flow, ids["CancelTestDrive"], {"db_path": "/data/car_dealership.db"})
         configure_component(flow, ids["CreateSalesLead"], {"db_path": "/data/car_dealership.db"})
+        configure_component(flow, ids["VehicleResearchAgent"], {"db_path": "/data/car_dealership.db"})
         configure_component(flow, ids["UnifiedWebSearch"], {
             "search_mode": "Web",
             "max_results": 5,
@@ -147,7 +151,9 @@ async def main() -> None:
             "CompareCars",
             "DealershipKnowledgeRAG",
             "CreateTestDrive",
+            "CancelTestDrive",
             "CreateSalesLead",
+            "VehicleResearchAgent",
             "UnifiedWebSearch",
             "URLComponent",
         ]:

@@ -6,6 +6,7 @@ import json
 import os
 import re
 import sqlite3
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
@@ -48,25 +49,56 @@ CAR_EXTRA_COLUMNS = {
     "catalog_active": "INTEGER NOT NULL DEFAULT 1",
 }
 
+SESSION_EXTRA_COLUMNS = {
+    "selected_snapshot_id": "INTEGER",
+    "selected_position": "INTEGER",
+}
+
+TEST_DRIVE_EXTRA_COLUMNS = {
+    "cancelled_at": "TEXT",
+}
+
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
-def _connect(db_path: str = DEFAULT_DB) -> sqlite3.Connection:
+@contextmanager
+def _connect(db_path: str = DEFAULT_DB) -> Iterable[sqlite3.Connection]:
     path = Path(db_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, timeout=30.0)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
-    return conn
+    conn.execute("PRAGMA busy_timeout = 30000")
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
-def _ensure_car_columns(conn: sqlite3.Connection) -> None:
-    existing = {row[1] for row in conn.execute("PRAGMA table_info(cars)").fetchall()}
+def _ensure_extra_columns(conn: sqlite3.Connection) -> None:
+    # cars
+    existing_cars = {row[1] for row in conn.execute("PRAGMA table_info(cars)").fetchall()}
     for name, sql_type in CAR_EXTRA_COLUMNS.items():
-        if name not in existing:
+        if name not in existing_cars:
             conn.execute(f"ALTER TABLE cars ADD COLUMN {name} {sql_type}")
+
+    # conversation_sessions
+    existing_sessions = {row[1] for row in conn.execute("PRAGMA table_info(conversation_sessions)").fetchall()}
+    for name, sql_type in SESSION_EXTRA_COLUMNS.items():
+        if name not in existing_sessions:
+            conn.execute(f"ALTER TABLE conversation_sessions ADD COLUMN {name} {sql_type}")
+
+    # test_drive_requests
+    existing_td = {row[1] for row in conn.execute("PRAGMA table_info(test_drive_requests)").fetchall()}
+    for name, sql_type in TEST_DRIVE_EXTRA_COLUMNS.items():
+        if name not in existing_td:
+            conn.execute(f"ALTER TABLE test_drive_requests ADD COLUMN {name} {sql_type}")
 
 
 def init_db(db_path: str = DEFAULT_DB) -> None:
@@ -109,6 +141,7 @@ def init_db(db_path: str = DEFAULT_DB) -> None:
                 preferred_time TEXT NOT NULL,
                 notes TEXT,
                 status TEXT NOT NULL DEFAULT 'NEW',
+                cancelled_at TEXT,
                 created_at TEXT NOT NULL,
                 FOREIGN KEY(car_id) REFERENCES cars(id)
             );
@@ -133,6 +166,57 @@ def init_db(db_path: str = DEFAULT_DB) -> None:
                 created_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS conversation_summaries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL UNIQUE,
+                summary TEXT NOT NULL DEFAULT '',
+                summarized_until_message_id INTEGER,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS conversation_sessions (
+                session_id TEXT PRIMARY KEY,
+                condition TEXT,
+                min_price REAL,
+                max_price REAL,
+                brand TEXT,
+                model TEXT,
+                body_type TEXT,
+                fuel_type TEXT,
+                transmission TEXT,
+                min_year INTEGER,
+                max_year INTEGER,
+                location TEXT,
+                max_mileage REAL,
+                last_recommended_car_ids TEXT,
+                selected_car_id INTEGER,
+                selected_snapshot_id INTEGER,
+                selected_position INTEGER,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS pending_actions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                action_type TEXT NOT NULL,
+                entity_id INTEGER,
+                payload_json TEXT NOT NULL DEFAULT '{}',
+                status TEXT NOT NULL DEFAULT 'pending',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS recommendation_snapshots (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT NOT NULL,
+                sequence_no INTEGER NOT NULL,
+                criteria_json TEXT NOT NULL DEFAULT '{}',
+                items_json TEXT NOT NULL DEFAULT '[]',
+                status TEXT NOT NULL DEFAULT 'active',
+                created_at TEXT NOT NULL
+            );
+
             CREATE TABLE IF NOT EXISTS knowledge_documents (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 source TEXT NOT NULL UNIQUE,
@@ -142,7 +226,7 @@ def init_db(db_path: str = DEFAULT_DB) -> None:
             );
             """
         )
-        _ensure_car_columns(conn)
+        _ensure_extra_columns(conn)
         conn.executescript(
             """
             CREATE INDEX IF NOT EXISTS idx_cars_brand ON cars(brand);
@@ -158,6 +242,13 @@ def init_db(db_path: str = DEFAULT_DB) -> None:
             CREATE INDEX IF NOT EXISTS idx_cars_source_id ON cars(source_id);
             CREATE INDEX IF NOT EXISTS idx_cars_catalog_active ON cars(catalog_active);
             CREATE INDEX IF NOT EXISTS idx_conversation_session ON conversation_messages(session_id, id);
+            CREATE INDEX IF NOT EXISTS idx_conversation_session_created ON conversation_messages(session_id, created_at);
+            CREATE INDEX IF NOT EXISTS idx_summaries_session ON conversation_summaries(session_id);
+            CREATE INDEX IF NOT EXISTS idx_sessions_session ON conversation_sessions(session_id);
+            CREATE INDEX IF NOT EXISTS idx_pending_actions_session ON pending_actions(session_id);
+            CREATE INDEX IF NOT EXISTS idx_pending_actions_session_status ON pending_actions(session_id, status);
+            CREATE INDEX IF NOT EXISTS idx_rec_snapshots_session_seq ON recommendation_snapshots(session_id, sequence_no);
+            CREATE INDEX IF NOT EXISTS idx_rec_snapshots_session_status ON recommendation_snapshots(session_id, status);
             """
         )
 
@@ -422,6 +513,117 @@ def create_test_drive(
         )
         request_id = cur.lastrowid
     return {"request_id": request_id, "status": "NEW", "car": car, "preferred_date": preferred_date, "preferred_time": preferred_time}
+
+
+def cancel_test_drive(
+    db_path: str,
+    request_id: int,
+    notes: str | None = None,
+) -> dict[str, Any]:
+    """Cancel a test drive request in the database and record timestamp."""
+    init_db(db_path)
+    with _connect(db_path) as conn:
+        row = conn.execute("SELECT * FROM test_drive_requests WHERE id=?", (int(request_id),)).fetchone()
+        if not row:
+            raise ValueError(f"Test drive request #{request_id} does not exist")
+        now = utc_now()
+        existing_notes = row["notes"] or ""
+        new_notes = f"{existing_notes} | Cancellation notes: {notes}".strip(" |") if notes else existing_notes
+        conn.execute(
+            "UPDATE test_drive_requests SET status='CANCELLED', cancelled_at=?, notes=? WHERE id=?",
+            (now, new_notes, int(request_id)),
+        )
+    return {
+        "request_id": int(request_id),
+        "status": "CANCELLED",
+        "cancelled_at": now,
+        "car_id": row["car_id"],
+        "customer_name": row["customer_name"],
+    }
+
+
+def get_test_drive_requests(
+    db_path: str,
+    *,
+    phone: str | None = None,
+    car_id: int | None = None,
+    status: str | None = None,
+    limit: int = 10,
+) -> list[dict[str, Any]]:
+    init_db(db_path)
+    clauses: list[str] = []
+    params: list[Any] = []
+    if phone:
+        digits = re.sub(r"\D", "", phone)
+        clauses.append("phone LIKE ?")
+        params.append(f"%{digits[-8:]}%")
+    if car_id is not None:
+        clauses.append("car_id = ?")
+        params.append(int(car_id))
+    if status:
+        clauses.append("LOWER(status) = LOWER(?)")
+        params.append(status.strip())
+    where = (" WHERE " + " AND ".join(clauses)) if clauses else ""
+    sql = f"SELECT * FROM test_drive_requests{where} ORDER BY id DESC LIMIT ?"
+    params.append(limit)
+    with _connect(db_path) as conn:
+        rows = conn.execute(sql, params).fetchall()
+        return [dict(r) for r in rows]
+
+
+def build_recommendation_set(cars: list[dict[str, Any]], limit: int = 5) -> list[dict[str, Any]]:
+    """Group duplicate vehicle listings/variants so hidden rows do not consume visible positions."""
+    grouped: list[dict[str, Any]] = []
+    seen_keys: dict[tuple, int] = {}
+
+    for c in cars:
+        # Grouping key: brand, model, year, condition, body_type, transmission, price
+        key = (
+            (c.get("brand") or "").strip().lower(),
+            (c.get("model") or "").strip().lower(),
+            c.get("year"),
+            (c.get("condition") or "").strip().lower(),
+            (c.get("body_type") or "").strip().lower(),
+            (c.get("transmission") or "").strip().lower(),
+            c.get("price"),
+        )
+        color = c.get("color")
+        car_id = int(c["id"])
+
+        if key in seen_keys:
+            idx = seen_keys[key]
+            if car_id not in grouped[idx]["variant_ids"]:
+                grouped[idx]["variant_ids"].append(car_id)
+            if color and color not in grouped[idx]["display_metadata"]["colors"]:
+                grouped[idx]["display_metadata"]["colors"].append(color)
+        else:
+            if len(grouped) >= limit:
+                continue
+            idx = len(grouped)
+            seen_keys[key] = idx
+            pos = idx + 1
+            brand_str = c.get("brand") or ""
+            model_str = c.get("model") or ""
+            display_name = f"{brand_str} {model_str}".strip() or f"Car #{car_id}"
+            grouped.append({
+                "position": pos,
+                "primary_car_id": car_id,
+                "variant_ids": [car_id],
+                "display_name": display_name,
+                "brand": brand_str,
+                "model": model_str,
+                "year": c.get("year"),
+                "condition": c.get("condition"),
+                "body_type": c.get("body_type"),
+                "transmission": c.get("transmission"),
+                "price": c.get("price"),
+                "display_metadata": {
+                    "colors": [color] if color else []
+                },
+            })
+
+    return grouped
+
 
 
 def create_sales_lead(

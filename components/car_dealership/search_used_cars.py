@@ -4,7 +4,8 @@ from lfx.custom import Component
 from lfx.io import FloatInput, IntInput, MessageTextInput, Output
 from lfx.schema import Data
 
-from car_dealership_core import DEFAULT_DB, search_cars
+from car_dealership_core import DEFAULT_DB, build_recommendation_set, search_cars
+from memory_manager import MemoryManager, get_current_session_id
 
 
 class SearchUsedCars(Component):
@@ -32,6 +33,7 @@ class SearchUsedCars(Component):
         FloatInput(name="max_mileage", display_name="Max Mileage", tool_mode=True, required=False),
         FloatInput(name="max_age", display_name="Max Vehicle Age", tool_mode=True, required=False),
         IntInput(name="limit", display_name="Result Limit", value=5, tool_mode=True, required=False),
+        MessageTextInput(name="session_id", display_name="Session ID", tool_mode=True, required=False),
         MessageTextInput(name="db_path", display_name="DB Path", value=DEFAULT_DB, advanced=True),
     ]
     outputs = [Output(display_name="Results", name="results", method="run_search")]
@@ -50,8 +52,29 @@ class SearchUsedCars(Component):
             v = getattr(self, k, None)
             if v not in (None, "", 0):
                 kwargs[k] = int(v)
-        kwargs["limit"] = int(getattr(self, "limit", 5) or 5)
-        rows = search_cars(self.db_path or DEFAULT_DB, **kwargs)
-        result = Data(data={"count": len(rows), "cars": rows})
+        limit = int(getattr(self, "limit", 5) or 5)
+        # Query slightly more rows from database so variant grouping doesn't truncate distinct models
+        kwargs["limit"] = max(limit * 3, 15)
+        db = self.db_path or DEFAULT_DB
+        raw_rows = search_cars(db, **kwargs)
+
+        # Group duplicate variants (e.g. colors/packages) into unified customer-visible positions
+        rec_set = build_recommendation_set(raw_rows, limit=limit)
+
+        sid = getattr(self, "session_id", None) or get_current_session_id()
+        snapshot_id = None
+        if sid and rec_set:
+            mm = MemoryManager(db)
+            criteria = {k: v for k, v in kwargs.items() if k != "limit"}
+            criteria["limit"] = limit
+            snap = mm.create_recommendation_snapshot(sid, criteria, rec_set)
+            snapshot_id = snap["id"]
+
+        result = Data(data={
+            "count": len(rec_set),
+            "snapshot_id": snapshot_id,
+            "recommendations": rec_set,
+            "cars": rec_set,
+        })
         self.status = json.dumps(result.data, ensure_ascii=False)
         return result
